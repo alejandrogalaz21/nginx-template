@@ -1,0 +1,39 @@
+stages:
+  - deploy
+
+variables:
+  MAIN_URL: 
+  LETSENCRYPT_EMAIL:
+
+.variables_master: &my_variables
+  stage: deploy
+  tags:
+    - main
+  only:
+    - master
+
+deploy:
+  <<: *my_variables
+  image: docker/compose:1.25.0-rc2
+  environment:
+    name: master
+    on_stop: stop
+    url: https://${VIRTUAL_HOST}
+  script:
+    - docker-compose pull
+    - docker-compose build
+    - docker-compose up -d --force-recreate --remove-orphans
+    - docker cp vhost.d/. nginx:/etc/nginx/vhost.d
+    - docker cp htpasswd/. nginx:/etc/nginx/htpasswd
+  variables:
+    VIRTUAL_HOST: portainer.${MAIN_URL}
+  when: always
+
+stop:
+  <<: *my_variables
+  environment:
+    action: stop
+    name: master
+  script:
+    - docker-compose down
+  when: manual

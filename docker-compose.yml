@@ -1,0 +1,76 @@
+version: '2'
+
+# External docker network (run only once)
+# docker network create -d bridge nginx-proxy
+
+networks:
+  default:
+    external:
+      name: nginx-proxy
+
+volumes:
+  conf:
+  html:
+  vhost:
+  htpasswd:
+  portainer:
+  certs:
+    external: true
+
+services:
+  nginx: # nginX Proxy
+    container_name: nginx
+    image: nginx:alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    restart: always
+    volumes:
+      - conf:/etc/nginx/conf.d # Nginx proxy config
+      - html:/usr/share/nginx/html
+      - vhost:/etc/nginx/vhost.d
+      - htpasswd:/etc/nginx/htpasswd # HTTP Basic Authentication
+      - certs:/etc/nginx/certs:ro # LetsEncrypt SSL Certs
+  nginx-gen: # nginX Config Generator
+    build: .
+    command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    container_name: nginx-gen
+    restart: always
+    # image: jwilder/docker-gen:latest
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    volumes_from:
+      - nginx
+  nginx-letsencrypt: # nginX LetsEncrypt SSL
+    container_name: nginx-letsencrypt
+    depends_on:
+      - nginx
+      - nginx-gen
+    environment:
+      - NGINX_DOCKER_GEN_CONTAINER=nginx-gen
+    image: jrcs/letsencrypt-nginx-proxy-companion:v1.13.1
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs:rw
+    volumes_from:
+      - nginx
+  # Portainer
+  portainer:
+    # If the password string has an "$" character you must escape it using double sign "$$"
+    command: -H unix:///var/run/docker.sock --admin-password $$2y$$05$$c92fF48FnGOIH..392G/TuBZGeicxobjEimtY94z1mApf1mLsY8kW
+    container_name: portainer
+    depends_on:
+      - nginx-letsencrypt
+    environment:
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      LETSENCRYPT_HOST: ${VIRTUAL_HOST}
+      LETSENCRYPT_EMAIL: 
+    image: portainer/portainer:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer:/data
+
