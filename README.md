@@ -31,23 +31,23 @@ GR -> GITLAB RUNNER
 GR - < NOMBRE-GRUPO > - < NOMBRE DEL VOLUMEN >
 
 ```
-docker volume create GR-AZUDUPROB01-PROBONO-1-ETC
+docker volume create NOMBRE-DEL-RUNNER-ETC
 ```
 
 ```
-docker volume create GR-AZUDUPROB01-PROBONO-1-HOME
+docker volume create NOMBRE-DEL-RUNNER-HOME
 ```
 
 2.2 Generar Contenedor :
-cambiar el nombre del runner por el nombre del grupo del repositorio ejemplo : --name GR-AZUDUPROB01-PROBONO-1
+cambiar el nombre del runner por el nombre del grupo del repositorio ejemplo : --name NOMBRE-DEL-RUNNER
 
 ```
 docker run -d \
-  --name GR-AZUDUPROB01-PROBONO-1 \
+  --name NOMBRE-DEL-RUNNER \
   --restart unless-stopped \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v GR-AZUDUPROB01-PROBONO-1-ETC:/etc/gitlab-runner \
-  -v GR-AZUDUPROB01-PROBONO-1-HOME:/home/gitlab-runner \
+  -v NOMBRE-DEL-RUNNER-ETC:/etc/gitlab-runner \
+  -v NOMBRE-DEL-RUNNER-HOME:/home/gitlab-runner \
   --privileged \
   gitlab/gitlab-runner:latest
 ```
@@ -55,7 +55,7 @@ docker run -d \
 2.3 Configurar Contenedor, Cambiar "yourGitlabGroupToken" por el token de tu runner y tag-list por el nombre de la VM ejemplo AZUDUPROB01 :
 
 ```
-docker exec -it GR-AZUDUPROB01-PROBONO-1 gitlab-runner register \
+docker exec -it NOMBRE-DEL-RUNNER gitlab-runner register \
   --non-interactive \
   --executor docker \
   --docker-volumes /var/run/docker.sock:/var/run/docker.sock \
@@ -63,7 +63,7 @@ docker exec -it GR-AZUDUPROB01-PROBONO-1 gitlab-runner register \
   --docker-image "tmaier/docker-compose" \
   --registration-token "NhtQsFR5_y4VrcAzzbo9" \
   --description "docker-runner" \
-  --tag-list "AZUDUPROB01" \
+  --tag-list "TAG-DEL-RUNNER" \
   --run-untagged="true" \
   --locked="false"
   --docker-privileged
